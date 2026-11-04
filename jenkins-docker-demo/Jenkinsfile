@@ -1,4 +1,4 @@
-
+```groovy
 pipeline {
     agent any
 
@@ -6,7 +6,7 @@ pipeline {
         DOCKERHUB_USER  = 'lovestrant'
         IMAGE_NAME      = 'devops-tip-bot'
         DOCKERHUB_CREDS = credentials('dockerhub-creds')
-        IMAGE_TAG       = "${env.BUILD_NUMBER}"
+        IMAGE_TAG       = "${BUILD_NUMBER}"
     }
 
     options {
@@ -15,6 +15,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -23,18 +24,24 @@ pipeline {
 
         stage('Test') {
             steps {
-                bat '"C:\\Users\\malov\\AppData\\Local\\Programs\\Python\\Python315\\python.exe" -m unittest -v'
+                dir('jenkins-docker-demo') {
+                    bat '''
+                        "C:\\Users\\malov\\AppData\\Local\\Programs\\Python\\Python315\\python.exe" -m unittest discover -s . -p "test_app.py" -v
+                    '''
+                }
             }
         }
 
         stage('Build Image') {
             steps {
-                bat '''
-                    docker build ^
-                    --build-arg BUILD_TAG=%IMAGE_NAME%-%IMAGE_TAG% ^
-                    -t %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG% ^
-                    -t %DOCKERHUB_USER%/%IMAGE_NAME%:latest .
-                '''
+                dir('jenkins-docker-demo') {
+                    bat '''
+                        docker build ^
+                        --build-arg BUILD_TAG=%IMAGE_NAME%-%IMAGE_TAG% ^
+                        -t %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG% ^
+                        -t %DOCKERHUB_USER%/%IMAGE_NAME%:latest .
+                    '''
+                }
             }
         }
 
@@ -74,14 +81,16 @@ pipeline {
 
                 docker logout
 
-                docker rmi %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG% %DOCKERHUB_USER%/%IMAGE_NAME%:latest
+                docker rmi %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG% 2>nul
+
+                docker rmi %DOCKERHUB_USER%/%IMAGE_NAME%:latest 2>nul
 
                 exit /b 0
             '''
         }
 
         success {
-            echo "Successfully pushed ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Successfully pushed ${env.DOCKERHUB_USER}/${env.IMAGE_NAME}:${env.IMAGE_TAG}"
         }
 
         failure {
@@ -89,3 +98,4 @@ pipeline {
         }
     }
 }
+```
