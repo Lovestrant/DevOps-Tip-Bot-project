@@ -3,10 +3,10 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = 'lovestrant'
-        IMAGE_NAME     = 'devops-tip-bot'
+        DOCKERHUB_USER  = 'lovestrant'
+        IMAGE_NAME      = 'devops-tip-bot'
         DOCKERHUB_CREDS = credentials('dockerhub-creds')
-        IMAGE_TAG      = "${env.BUILD_NUMBER}"
+        IMAGE_TAG       = "${env.BUILD_NUMBER}"
     }
 
     options {
@@ -23,7 +23,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                bat 'python -m unittest -v'
+                bat '"C:\\Users\\malov\\AppData\\Local\\Programs\\Python\\Python315\\python.exe" -m unittest -v'
             }
         }
 
@@ -40,7 +40,9 @@ pipeline {
 
         stage('Smoke Test Image') {
             steps {
-                bat 'docker run --rm %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG%'
+                bat '''
+                    docker run --rm %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG%
+                '''
             }
         }
 
@@ -48,13 +50,17 @@ pipeline {
             steps {
                 bat '''
                     @echo off
+
                     echo %DOCKERHUB_CREDS_PSW% | docker login -u %DOCKERHUB_CREDS_USR% --password-stdin
+
                     if errorlevel 1 exit /b 1
 
                     docker push %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG%
+
                     if errorlevel 1 exit /b 1
 
                     docker push %DOCKERHUB_USER%/%IMAGE_NAME%:latest
+
                     if errorlevel 1 exit /b 1
                 '''
             }
@@ -64,14 +70,18 @@ pipeline {
     post {
         always {
             bat '''
+                @echo off
+
                 docker logout
+
                 docker rmi %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG% %DOCKERHUB_USER%/%IMAGE_NAME%:latest
+
                 exit /b 0
             '''
         }
 
         success {
-            echo "Pushed ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Successfully pushed ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
         }
 
         failure {
