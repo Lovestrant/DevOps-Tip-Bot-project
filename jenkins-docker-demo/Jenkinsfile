@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // CHANGE THESE
-        DOCKERHUB_USER = 'your-dockerhub-username'
+        DOCKERHUB_USER = 'lovestrant'
         IMAGE_NAME     = 'devops-tip-bot'
         // Jenkins credential (Username with password) holding Docker Hub login/token
         DOCKERHUB_CREDS = credentials('dockerhub-creds')
