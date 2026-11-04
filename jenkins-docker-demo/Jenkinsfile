@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_USER  = 'lovestrant'
-        IMAGE_NAME      = 'devops-tip-bot'
+        IMAGE_NAME      = 'devops-tips'
         DOCKERHUB_CREDS = credentials('dockerhub-creds')
         IMAGE_TAG       = "${BUILD_NUMBER}"
     }
