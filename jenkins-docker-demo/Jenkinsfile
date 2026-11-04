@@ -57,17 +57,17 @@ pipeline {
             steps {
                 bat '''
                     @echo off
-
+        
                     echo %DOCKERHUB_CREDS_PSW% | docker login -u %DOCKERHUB_CREDS_USR% --password-stdin
-
+        
                     if errorlevel 1 exit /b 1
-
+        
                     docker push %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG%
-
+        
                     if errorlevel 1 exit /b 1
-
+        
                     docker push %DOCKERHUB_USER%/%IMAGE_NAME%:latest
-
+        
                     if errorlevel 1 exit /b 1
                 '''
             }
