@@ -1,11 +1,10 @@
+
 pipeline {
     agent any
 
     environment {
-        // CHANGE THESE
         DOCKERHUB_USER = 'lovestrant'
         IMAGE_NAME     = 'devops-tip-bot'
-        // Jenkins credential (Username with password) holding Docker Hub login/token
         DOCKERHUB_CREDS = credentials('dockerhub-creds')
         IMAGE_TAG      = "${env.BUILD_NUMBER}"
     }
@@ -24,33 +23,39 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh 'python3 -m unittest -v'
+                bat 'python -m unittest -v'
             }
         }
 
         stage('Build Image') {
             steps {
-                sh '''
-                  docker build \
-                    --build-arg BUILD_TAG=${IMAGE_NAME}-${IMAGE_TAG} \
-                    -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} \
-                    -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest .
+                bat '''
+                    docker build ^
+                    --build-arg BUILD_TAG=%IMAGE_NAME%-%IMAGE_TAG% ^
+                    -t %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG% ^
+                    -t %DOCKERHUB_USER%/%IMAGE_NAME%:latest .
                 '''
             }
         }
 
         stage('Smoke Test Image') {
             steps {
-                sh 'docker run --rm ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}'
+                bat 'docker run --rm %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG%'
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                sh '''
-                  echo "$DOCKERHUB_CREDS_PSW" | docker login -u "$DOCKERHUB_CREDS_USR" --password-stdin
-                  docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                  docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
+                bat '''
+                    @echo off
+                    echo %DOCKERHUB_CREDS_PSW% | docker login -u %DOCKERHUB_CREDS_USR% --password-stdin
+                    if errorlevel 1 exit /b 1
+
+                    docker push %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG%
+                    if errorlevel 1 exit /b 1
+
+                    docker push %DOCKERHUB_USER%/%IMAGE_NAME%:latest
+                    if errorlevel 1 exit /b 1
                 '''
             }
         }
@@ -58,10 +63,19 @@ pipeline {
 
     post {
         always {
-            sh 'docker logout || true'
-            sh 'docker rmi ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} ${DOCKERHUB_USER}/${IMAGE_NAME}:latest || true'
+            bat '''
+                docker logout
+                docker rmi %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG% %DOCKERHUB_USER%/%IMAGE_NAME%:latest
+                exit /b 0
+            '''
         }
-        success { echo "Pushed ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}" }
-        failure { echo 'Pipeline failed. Check the stage logs above.' }
+
+        success {
+            echo "Pushed ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+        }
+
+        failure {
+            echo 'Pipeline failed. Check the stage logs above.'
+        }
     }
 }
